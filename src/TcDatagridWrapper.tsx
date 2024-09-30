@@ -10,7 +10,7 @@ export class TcDatagridWrapper extends Component<TcDatagridWrapperContainerProps
     gridName: string | null | undefined;
     gridKey: string | null | undefined;
     controller: any;
-    private _gridRef: any;
+    _gridRef: any;
     lockupdates: boolean = false;
 
     constructor(props: TcDatagridWrapperContainerProps) {
@@ -26,8 +26,7 @@ export class TcDatagridWrapper extends Component<TcDatagridWrapperContainerProps
             return;
         }
         if (_prevProps.limit?.value != this.props.limit?.value || _prevProps.page?.value != this.props.page?.value) {
-            console.debug("New limit:", this.props.limit);
-            console.debug("New Page:", this.props.page);
+            console.debug(`New limit: ${this.props.limit?.value} New Page: ${this.props.page?.value}`);            
             this.setNewPageAndLimit();
         }
     }
@@ -46,6 +45,8 @@ export class TcDatagridWrapper extends Component<TcDatagridWrapperContainerProps
             return;
         }
 
+        this.setNewPageAndLimit();
+        
         if (!this.controller.emitter.events.sourcechange.includes(this.handleGridSourceChange)) {
             this.controller.emitter.events.sourcechange.push(this.handleGridSourceChange);
         }
@@ -103,7 +104,7 @@ export class TcDatagridWrapper extends Component<TcDatagridWrapperContainerProps
     render(): ReactNode {
         const wrapGrid = (content: any): ReactNode => {            
             this._gridRef = React.createRef();
-
+            
             const childrenWithProps = React.Children.map(content, (child, _index) => {
                 const cloned = React.cloneElement(child, { ref: this._gridRef });
                 this.gridName = cloned.key?.split(".").pop();
