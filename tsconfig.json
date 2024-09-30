@@ -1,0 +1,10 @@
+{
+  "extends": "@mendix/pluggable-widgets-tools/configs/tsconfig.base",
+  "compilerOptions": {
+    "baseUrl": "./",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
+    
+  },
+  "include": ["./src", "./typings"]
+}

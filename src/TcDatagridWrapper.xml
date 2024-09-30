@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<widget id="truechange.tcdatagridwrapper.TcDatagridWrapper" pluginWidget="true" needsEntityContext="true" offlineCapable="true"
+        supportedPlatform="Web"
+        xmlns="http://www.mendix.com/widget/1.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.mendix.com/widget/1.0/ ../node_modules/mendix/custom_widget.xsd">
+    <name>Tc Datagrid Wrapper</name>
+    <description>Datagrid2 wrapper</description>
+    <icon/>
+    <properties>
+        <propertyGroup caption="General">
+            <property key="datagrid2Content" type="widgets" required="true">
+                <caption>Put a datagrid2 inside</caption>
+                <description>Must have a DataWidget with Export JS capable v.X </description>
+            </property>
+            
+            <property key="limit" type="attribute" required="false">
+                <caption>limit / pageSize</caption>
+                <description>Limit / Page size - changes grid limit per page</description>
+                <attributeTypes>
+                    <attributeType name="Long" />
+                    <attributeType name="Integer"/>
+                </attributeTypes>
+            </property>
+            <property key="page" type="attribute" required="false">
+                <caption>Page</caption>
+                <description>current page - changes grid page</description>
+                <attributeTypes>
+                    <attributeType name="Long" />
+                    <attributeType name="Integer"/>
+                </attributeTypes>
+            </property>
+            <property key="offset" type="attribute" required="false">
+                <caption>Offset</caption>
+                <description>read only - indicates current offset.</description>
+                <attributeTypes>
+                    <attributeType name="Long" />
+                    <attributeType name="Integer"/>
+                </attributeTypes>
+            </property>
+            <property key="pageCount" type="attribute" required="false">
+                <caption>Page Count</caption>
+                <description>read only - records in the page / Page Count</description>
+                <attributeTypes>
+                    <attributeType name="Long" />
+                    <attributeType name="Integer"/>
+                </attributeTypes>
+            </property>
+            <property key="totalCount" type="attribute" required="false">
+                <caption>Total Count</caption>
+                <description>read only - total count of records</description>
+                <attributeTypes>
+                    <attributeType name="Long" />
+                    <attributeType name="Integer"/>
+                </attributeTypes>
+            </property>     
+            
+            <property key="ondatachanged" type="action" required="false">
+                <caption>OnDataChanged</caption>
+                <description>On Data Changed Event</description>
+            </property>      
+
+
+        </propertyGroup>
+    </properties>
+</widget>
