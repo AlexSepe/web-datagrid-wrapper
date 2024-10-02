@@ -1,17 +1,14 @@
-import { Component, ReactNode, Fragment, createElement } from "react";
+import { Component, ReactNode, Fragment, createElement, Children } from "react";
 
 import { TcDatagridWrapperContainerProps } from "../typings/TcDatagridWrapperProps";
 
 import "./ui/TcDatagridWrapper.css";
-import React from "react";
 import Big from "big.js";
 
 export class TcDatagridWrapper extends Component<TcDatagridWrapperContainerProps> {
     gridName: string | null | undefined;
-    gridKey: string | null | undefined;
-    controller: any;
-    _gridRef: any;
-    lockupdates: boolean = false;
+    gridKey: string | null | undefined;    
+    lockupdates = false;
 
     constructor(props: TcDatagridWrapperContainerProps) {
         super(props);
@@ -19,36 +16,59 @@ export class TcDatagridWrapper extends Component<TcDatagridWrapperContainerProps
         this.setNewPageAndLimit = this.setNewPageAndLimit.bind(this);
     }
 
-    componentDidUpdate(_prevProps: Readonly<TcDatagridWrapperContainerProps>, _prevState: Readonly<{}>): void {
-        console.debug("DidUpdate:", this.gridName);
-
-        if (this.lockupdates){
+    getController(): any {
+        const REGISTRY_NAME: any = "com.mendix.widgets.web.datagrid.export";
+        const registry: any = window[REGISTRY_NAME];
+        return registry?.get(this.gridName);
+    }
+        
+    componentDidUpdate(_prevProps: Readonly<TcDatagridWrapperContainerProps>): void {
+        if (!this.getController()) {
+            console.debug(`[TcDatagridWrapper.${this.props.name}]`, "Controller not bound");
+            this.bindController();
             return;
         }
-        if (_prevProps.limit?.value != this.props.limit?.value || _prevProps.page?.value != this.props.page?.value) {
-            console.debug(`New limit: ${this.props.limit?.value} New Page: ${this.props.page?.value}`);            
+
+        console.debug(`[TcDatagridWrapper.${this.props.name}]`, " DidUpdate:" + this.gridName);
+
+        if (this.lockupdates) {
+            return;
+        }
+        if (_prevProps.limit?.value !== this.props.limit?.value || _prevProps.page?.value !== this.props.page?.value) {
+            console.debug(`New limit: ${this.props.limit?.value} New Page: ${this.props.page?.value}`);
             this.setNewPageAndLimit();
         }
     }
 
     componentDidMount(): void {
-        const REGISTRY_NAME: any = "com.mendix.widgets.web.datagrid.export";
-        const registry: any = window[REGISTRY_NAME];
-        this.controller = registry.get(this.gridName);
+        this.bindController();
+    }
 
-        console.info("DidMount:", this.gridName, " controller:", this.controller);
+    componentWillUnmount(): void {
+        console.info("componentWillUnmount............");
+    }
 
-        if (this.controller === undefined) {
+    bindController(): void {
+        const controller = this.getController();  
+        if (!controller) {
             console.error(
                 `Controller Datagrid2 com nome ${this.gridName} não encontrado, revise a versão do DataWidgets.`
             );
             return;
         }
 
+        console.info(
+            `[TcDatagridWrapper.${this.props.name}]`,
+            " bindController:",
+            this.gridName,
+            " controller:",
+            controller
+        );
+
         this.setNewPageAndLimit();
-        
-        if (!this.controller.emitter.events.sourcechange.includes(this.handleGridSourceChange)) {
-            this.controller.emitter.events.sourcechange.push(this.handleGridSourceChange);
+
+        if (!controller.emitter.events.sourcechange.includes(this.handleGridSourceChange)) {
+            controller.emitter.events.sourcechange.push(this.handleGridSourceChange);
         }
     }
 
@@ -68,51 +88,71 @@ export class TcDatagridWrapper extends Component<TcDatagridWrapperContainerProps
         const limit: number = gridDatasource.limit;
         const pageCount: number = gridDatasource.items.length;
         const totalCount: number = gridDatasource.totalCount;
-        
-        this.lockupdates = true;
 
-        this.props.limit?.setValue(new Big(limit));
+        this.lockupdates = true;
+        
         this.props.offset?.setValue(new Big(offset));
         this.props.page?.setValue(new Big(offset / limit + 1));
         this.props.pageCount?.setValue(new Big(pageCount));
         this.props.totalCount?.setValue(new Big(totalCount));
+        //copy limit value to props only if not defined there..
+        if (!this.props.limit?.value || this.props.limit?.value.toNumber() <= 0 ){
+            this.props.limit?.setValue(new Big(limit));
+        }        
 
         if (this.props.ondatachanged && this.props.ondatachanged.canExecute) {
             this.props.ondatachanged.execute();
         }
-
         this.lockupdates = false;
+
+        //FIX grid visibility Hides etc..
+        //grid limit not set propertly
+        if (this.props.limit?.value && this.props.limit?.value.toNumber() != limit){
+            this.setNewPageAndLimit();
+        }
     }
 
-    setNewPageAndLimit() {
-        if (this.controller === undefined) {
+    setNewPageAndLimit(): void {
+        const controller = this.getController(); 
+        if (!controller) {
             console.error(
                 `Controller Datagrid2 com nome ${this.gridName} não encontrado, revise a versão do DataWidgets.`
             );
             return;
         }
-        
+
         const limit = this.props.limit?.value?.toNumber();
         const page = this.props.page?.value?.toNumber();
-        if (limit != undefined && page != undefined && limit > 0 && page > 0) {
+        if (limit !== undefined && page !== undefined && limit > 0 && page > 0) {
             const offset = (page - 1) * limit;
-            this.controller.datasource.setLimit(limit);
-            this.controller.datasource.setOffset(offset);
+            controller?.datasource?.setLimit(limit);
+            controller?.datasource?.setOffset(offset);
         }
     }
 
     render(): ReactNode {
-        const wrapGrid = (content: any): ReactNode => {            
-            this._gridRef = React.createRef();
+        const searchGridWidget = (child: any) => {
+            // child.type.displayName === "pluginWidget(ConditionalVisibilityWrapper)"
+            if (child.props?.contents){
+                searchGridWidget(child.props?.contents[0]);
+                return;
+            }
+            // child.type.displayName === "pluginWidget(Container)"
+            if (child.props?.content){
+                searchGridWidget(child.props?.content[0]);
+                return;
+            }
             
-            const childrenWithProps = React.Children.map(content, (child, _index) => {
-                const cloned = React.cloneElement(child, { ref: this._gridRef });
-                this.gridName = cloned.key?.split(".").pop();
-                this.gridKey = cloned.key;
-                return cloned;
+            // Is a Datagrid??? who knows...
+            this.gridName = child.key?.split(".").pop();
+            this.gridKey = child.key;
+        }
+        
+        const wrapGrid = (content: any): ReactNode => {
+            Children.forEach(content, (child, _index) => {
+                searchGridWidget(child);                                
             });
-
-            return childrenWithProps;
+            return content;
         };
 
         return <Fragment>{wrapGrid(this.props.datagrid2Content)}</Fragment>;
