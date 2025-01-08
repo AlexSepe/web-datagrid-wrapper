@@ -99,11 +99,17 @@ export class TcDatagridWrapper extends Component<TcDatagridWrapperContainerProps
         if (!controller.emitter.events.sourcechange.includes(this.handleGridSourceChange)) {
             controller.emitter.events.sourcechange.push(this.handleGridSourceChange);
         }
+
+        if (controller.datasource) {
+            this.handleGridSourceChange(controller.datasource);
+        }        
+
         return true;
     }
 
     handleGridSourceChange(gridDatasource: any): void {
         if (gridDatasource.status !== "available") {
+            console.info(`[TcDatagridWrapper.${this.props.name}] datasource Not available...`);
             return;
         }
         console.debug(
