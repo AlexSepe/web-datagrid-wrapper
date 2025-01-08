@@ -9,6 +9,7 @@ export class TcDatagridWrapper extends Component<TcDatagridWrapperContainerProps
     gridName: string | null | undefined;
     gridKey: string | null | undefined;    
     lockupdates = false;
+    gridBounded = false;
 
     constructor(props: TcDatagridWrapperContainerProps) {
         super(props);
@@ -22,9 +23,9 @@ export class TcDatagridWrapper extends Component<TcDatagridWrapperContainerProps
         return registry?.get(this.gridName);
     }
         
-    componentDidUpdate(_prevProps: Readonly<TcDatagridWrapperContainerProps>): void {
+    componentDidUpdate(_prevProps: Readonly<TcDatagridWrapperContainerProps>): void {    
         if (!this.getController()) {
-            console.debug(`[TcDatagridWrapper.${this.props.name}]`, "Controller not bound");
+            console.debug(`[TcDatagridWrapper.${this.props.name}]`, "Controller not bound 2");
             this.bindController();
             return;
         }
@@ -40,22 +41,50 @@ export class TcDatagridWrapper extends Component<TcDatagridWrapperContainerProps
         }
     }
 
-    componentDidMount(): void {
-        this.bindController();
+    componentDidMount(): void {        
+        const sleepUntil = async (f: any, timeoutMs: number) => {
+            return new Promise<void>((resolve, reject) => {
+                const timeWas = new Date();
+                const wait = setInterval(function() {
+                    const elapsedTime = new Date().getMilliseconds() - timeWas.getMilliseconds();
+                    if (f()) {
+                        console.info("TcDatagridWrapper resolved after", elapsedTime, "ms");
+                        clearInterval(wait);
+                        resolve();
+                    } else if (elapsedTime > timeoutMs) { // Timeout
+                        console.error("TcDatagridWrapper rejected after", elapsedTime, "ms");
+                        clearInterval(wait);
+                        reject();
+                    }
+                }, 100);
+            });
+        }
+
+        sleepUntil(() => this.bindController(), 10000)
+            .then(() => {
+                // ready
+            }).catch(() => {
+                // timeout
+                console.error(
+                    `Controller Datagrid2 com nome ${this.gridName} não encontrado, revise a versão do DataWidgets.`
+                );
+            });        
     }
 
     componentWillUnmount(): void {
         console.info("componentWillUnmount............");
     }
 
-    bindController(): void {
-        const controller = this.getController();  
+    bindController(): boolean {
+        const controller = this.getController();         
         if (!controller) {
-            console.error(
-                `Controller Datagrid2 com nome ${this.gridName} não encontrado, revise a versão do DataWidgets.`
+            console.debug(
+                `Controller Datagrid2 com nome ${this.gridName} não encontrado, aguardando grid renderizar...`
             );
-            return;
+            return false;
         }
+        
+        this.gridBounded = true;
 
         console.info(
             `[TcDatagridWrapper.${this.props.name}]`,
@@ -70,6 +99,7 @@ export class TcDatagridWrapper extends Component<TcDatagridWrapperContainerProps
         if (!controller.emitter.events.sourcechange.includes(this.handleGridSourceChange)) {
             controller.emitter.events.sourcechange.push(this.handleGridSourceChange);
         }
+        return true;
     }
 
     handleGridSourceChange(gridDatasource: any): void {
@@ -149,7 +179,7 @@ export class TcDatagridWrapper extends Component<TcDatagridWrapperContainerProps
         }
         
         const wrapGrid = (content: any): ReactNode => {
-            Children.forEach(content, (child, _index) => {
+            Children.forEach(content, (child, _index) => {                
                 searchGridWidget(child);                                
             });
             return content;
